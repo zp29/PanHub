@@ -16,7 +16,7 @@
   "menu": {
     "button": [
       {
-        "name": "Emby更新",
+        "name": "Emby更新v1",
         "sub_button": [
           {
             "type": "click",
@@ -37,7 +37,12 @@
             "type": "click",
             "name": "动漫更新",
             "key": "UpdateEmbyAmi"
-          }
+          },
+          {
+            "type": "view",
+            "name": "全部更新view",
+            "url": "https://wwpemby.zp29.xyz:29/api/test/menu?key=UpdateEmbyAll"
+          }          
         ]
       },
       {
