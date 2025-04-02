@@ -1,0 +1,50 @@
+{
+  "wechat": {
+    "corpId": "ww875b9d059d13e922",
+    "corpSecret": "J4_DkaYhbgvBkyN6BYwcdXqzgoErHS6C9OgOoA0Gqoc",
+    "agentId": "1000005",
+    "token": "zXmBUdnC3bzayI",
+    "encodingAesKey": "z9jLDm8uo53rfruUIj0xZo5bhQJzGi1SnbjUHBFUG9x"
+  },
+  "server": {
+    "port": 4001
+  },
+  "proxy": {
+    "enabled": true,
+    "url": "http://1.95.213.118:3003"
+  },
+  "menu": {
+    "button": [
+      {
+        "name": "Emby更新",
+        "sub_button": [
+          {
+            "type": "click",
+            "name": "全部更新",
+            "key": "UpdateEmbyAll"
+          },
+          {
+            "type": "click",
+            "name": "电影更新",
+            "key": "UpdateEmbyMov"
+          },
+          {
+            "type": "click",
+            "name": "电视剧更新",
+            "key": "UpdateEmbyTv"
+          },
+          {
+            "type": "click",
+            "name": "动漫更新",
+            "key": "UpdateEmbyAmi"
+          }
+        ]
+      },
+      {
+        "type": "click",
+        "name": "服务状态",
+        "key": "ServiceStatus"
+      }
+    ]
+  }
+}
