@@ -4,192 +4,47 @@
  * 收到指令后会给用户回复接收到相应指令的消息
  */
 
+// 导入依赖
 const express = require('express');
-const bodyParser = require('body-parser');
-const fs = require('fs');
-const path = require('path');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 
-// 读取配置文件
+// 导入配置
 const config = require('./config.json');
-// 引入微信服务模块和菜单管理模块
-const wechat = require('./wechat');
-const menuManager = require('./menu');
 
+// 导入中间件
+const xmlParserMiddleware = require('./middlewares/xmlParser');
+
+// 导入控制器
+const wechatController = require('./controllers/wechatController');
+const menuController = require('./controllers/menuController');
+const proxyController = require('./controllers/proxyController');
+
+// 初始化Express应用
 const app = express();
 const port = config.server.port || 4001;
 
-// 引入express-xml-bodyparser模块来正确处理XML数据
-const xmlparser = require('express-xml-bodyparser');
+// 确保日志目录存在
+const logDir = path.join(__dirname, 'logs');
+if (!fs.existsSync(logDir)) {
+  fs.mkdirSync(logDir, { recursive: true });
+}
 
-// 添加中间件，注意顺序
+// 配置中间件，注意顺序很重要
+// 先应用XML解析中间件，捕获原始请求体
+app.use(xmlParserMiddleware);
+
+// 再应用其他中间件
 app.use(express.json());
 app.use(express.text());
 app.use(cors());
 
-// 添加XML解析中间件
-app.use((req, res, next) => {
-  // 只处理含有XML的请求体
-  const contentType = req.headers['content-type'] || '';
-  if (contentType.includes('xml') || req.method === 'POST') {
-    let rawBody = '';
-    req.setEncoding('utf8');
-    
-    req.on('data', (chunk) => {
-      rawBody += chunk;
-    });
-    
-    req.on('end', () => {
-      // 存储原始请求体
-      req.rawBody = rawBody;
-      
-      // 如果包含XML数据，直接设置body
-      if (rawBody && (rawBody.includes('<xml') || rawBody.includes('ToUserName'))) {
-        req.body = rawBody;
-        console.log('【请求拦截】成功捕获XML数据，长度:', rawBody.length);
-      }
-      next();
-    });
-  } else {
-    // 非XML请求直接继续
-    next();
-  }
-});
+// 根路径GET处理 - 用于企业微信URL验证或健康检查
+app.get('/', wechatController.handleUrlVerification);
 
-/**
- * 处理收到的命令
- * @param {string} command - 收到的命令
- * @param {string} fromUser - 发送命令的用户ID
- * @returns {Promise<string>} - 响应消息
- */
-async function handleCommand(command, fromUser) {
-  // 输出详细日志
-  console.log('【命令处理】开始处理命令:', {
-    command: command || '空',
-    fromUser: fromUser || '未知用户',
-    commandType: typeof command,
-    fromUserType: typeof fromUser
-  });
-  
-  // 检查参数合法性
-  if (!command || typeof command !== 'string') {
-    const errorMsg = '无效的命令格式';
-    console.warn('【命令处理】', errorMsg, command);
-    return errorMsg;
-  }
-  
-  // 完善fromUser参数
-  if (!fromUser || typeof fromUser !== 'string') {
-    fromUser = '@unknown';
-    console.warn('【命令处理】用户ID无效，使用默认值:', fromUser);
-  }
-  
-  // 处理命令
-  let responseMsg = '';
-  const trimmedCommand = command.trim(); // 去除命令前后的空白字符
-  
-  console.log('【命令处理】准备处理命令:', trimmedCommand);
-  
-  switch (trimmedCommand) {
-    case 'UpdateEmbyAll':
-      responseMsg = '已接收到 UpdateEmbyAll 指令';
-      console.log('【命令处理】处理 UpdateEmbyAll 指令');
-      // 这里可以添加实际的处理逻辑
-      break;
-    case 'UpdateEmbyMov':
-      responseMsg = '已接收到 UpdateEmbyMov 指令';
-      console.log('【命令处理】处理 UpdateEmbyMov 指令');
-      // 这里可以添加实际的处理逻辑
-      break;
-    case 'UpdateEmbyTv':
-      responseMsg = '已接收到 UpdateEmbyTv 指令';
-      console.log('【命令处理】处理 UpdateEmbyTv 指令');
-      // 这里可以添加实际的处理逻辑
-      break;
-    case 'UpdateEmbyAmi':
-      responseMsg = '已接收到 UpdateEmbyAmi 指令';
-      console.log('【命令处理】处理 UpdateEmbyAmi 指令');
-      // 这里可以添加实际的处理逻辑
-      break;
-    case 'ServiceStatus':
-      responseMsg = `服务状态正常，当前时间: ${new Date().toLocaleString('zh-CN')}`;
-      console.log('【命令处理】处理 ServiceStatus 指令');
-      break;
-    default:
-      responseMsg = `未识别的指令: ${trimmedCommand}`;
-      console.log('【命令处理】收到未知命令:', trimmedCommand);
-      break;
-  }
-  
-  // 发送响应消息给用户
-  console.log(`【命令处理】准备发送响应消息给用户 ${fromUser}: ${responseMsg}`);
-  try {
-    const sendResult = await wechat.sendMessage(responseMsg, fromUser);
-    console.log('【命令处理】响应消息发送状态:', sendResult ? '成功' : '失败');
-  } catch (sendError) {
-    console.error('【命令处理】发送响应消息时出错:', sendError);
-  }
-  
-  return responseMsg;
-}
-
-// 根路径GET处理 - 用于企业微信URL验证
-app.get('/', async (req, res) => {
-  console.log('收到根路径GET请求:', {
-    url: req.url,
-    query: req.query,
-    path: req.path,
-    ip: req.ip,
-    headers: req.headers
-  });
-  
-  const { echostr } = req.query;
-  
-  // 如果是企业微信验证请求（包含echostr参数）
-  if (echostr) {
-    return wechat.handleUrlVerification(req, res);
-  }
-  
-  // 如果是普通的根路径请求
-  return res.status(200).send('企业微信通知服务运行正常');
-});
-
-// 添加特殊测试路径，用于测试企业微信回调连通性
-app.all('/wechat/test', (req, res) => {
-  // 记录详细的请求日志
-  console.log('【企微测试】收到企业微信测试请求:', {
-    method: req.method,
-    path: req.path,
-    url: req.url,
-    query: req.query,
-    body: req.body,
-    rawBody: req.rawBody,
-    headers: req.headers,
-    ip: req.ip,
-    timestamp: new Date().toISOString()
-  });
-  
-  // 永远返回成功响应，便于识别是否收到请求
-  res.status(200).json({
-    status: 'success',
-    message: '企业微信测试回调成功',
-    time: new Date().toISOString(),
-    requestInfo: {
-      method: req.method,
-      path: req.path,
-      ip: req.ip
-    }
-  });
-});
-
-// 通用GET请求处理
+// 通用GET请求处理 - 健康检查路由
 app.get(['/test', '/health', '/status'], (req, res) => {
-  console.log('收到其他GET请求:', {
-    url: req.url,
-    query: req.query,
-    path: req.path
-  });
-  
   // 测试路径
   if (req.path === '/test' && req.query.test) {
     return res.send(req.query.test);
@@ -203,376 +58,26 @@ app.get(['/test', '/health', '/status'], (req, res) => {
   });
 });
 
-// POST请求用于接收企业微信消息 - 处理根路径和其他路径
-// 添加更多可能的路径匹配，确保所有可能的回调路径都能处理
-app.post(['/', '/wechat', '/wechat/callback', '/wechat/test', '/callback', '/test', '*/callback', '*/wechat', '*/wechat/*'], async (req, res) => {
-  console.log('【消息捕获】收到POST请求，路径:', req.path, '详细信息:', {
-    method: req.method,
-    originalUrl: req.originalUrl,
-    ip: req.ip,
-    protocol: req.protocol,
-    headers: req.headers
-  });
-  console.log('收到企业微信消息请求:', {
-    path: req.path,
-    query: req.query,
-    bodyType: typeof req.body,
-    bodyLength: req.body ? (typeof req.body === 'string' ? req.body.length : JSON.stringify(req.body).length) : 0,
-    hasRawBody: !!req.rawBody
-  });
-  
-  // 输出详细的原始请求内容
-  if (req.rawBody) {
-    console.log('【消息原始内容】:', req.rawBody.substring(0, 200) + (req.rawBody.length > 200 ? '...' : ''));
-  }
-  
-  // 如果请求体是空的，但有原始请求体，使用原始请求体
-  const xmlData = req.body || req.rawBody;
-  if (!xmlData) {
-    console.error('【警告】请求体为空！');
-  }
-  
-  // 记录原始消息到日志文件
-  try {
-    const timestamp = new Date().getTime();
-    const logDir = path.join(__dirname, 'logs');
-    if (!fs.existsSync(logDir)) {
-      fs.mkdirSync(logDir, { recursive: true });
-    }
-    
-    // 记录更详细的日志，包括原始请求体
-    fs.writeFileSync(
-      path.join(logDir, `wechat_msg_${timestamp}.json`), 
-      JSON.stringify({
-        query: req.query, 
-        body: req.body, 
-        rawBody: req.rawBody,
-        headers: req.headers,
-        timestamp: new Date().toISOString()
-      }, null, 2)
-    );
-  } catch (error) {
-    console.error('写入日志失败:', error);
-  }
-  
-  try {
-    // 1. 尝试转发到中转服务器
-    if (config.proxy && config.proxy.enabled) {
-      try {
-        console.log(`尝试转发消息到中转服务器: ${config.proxy.url}`);
-        
-        // 使用原始请求数据转发
-        const xmlData = req.rawBody || req.body;
-        const proxyUrl = `${config.proxy.url}/callback`;
-        
-        // 使用axios替代fetch，以兼容所有Node.js版本
-        const proxyResponse = await axios.post(proxyUrl, xmlData, {
-          headers: {
-            'Content-Type': req.headers['content-type'] || 'text/xml'
-          },
-          params: req.query, // 传递URL参数，包括签名信息
-          timeout: 5000
-        });
-        
-        console.log('中转服务器响应:', proxyResponse.data);
-      } catch (proxyError) {
-        console.error('转发到中转服务器失败:', proxyError.message);
-        // 转发失败也不影响处理流程，继续处理消息
-      }
-    }
-
-    // 2. 获取XML数据，优先使用原始请求体
-    let xmlData = null;
-
-    // 打印详细调试信息
-    console.log('【请求详情】消息类型检查:', {
-      bodyType: typeof req.body,
-      bodyIsString: typeof req.body === 'string',
-      rawBodyExists: !!req.rawBody,
-      contentType: req.headers['content-type']
-    });
-
-    // 先检查原始请求体
-    if (req.rawBody && typeof req.rawBody === 'string') {
-      if (req.rawBody.includes('<xml') || req.rawBody.includes('ToUserName')) {
-        xmlData = req.rawBody;
-        console.log('【消息解析】使用rawBody中的XML数据:', xmlData.substring(0, 100));
-      }
-    }
-    
-    // 如果原始请求体中没有XML，检查body
-    if (!xmlData && req.body) {
-      if (typeof req.body === 'string' && (req.body.includes('<xml') || req.body.includes('ToUserName'))) {
-        xmlData = req.body;
-        console.log('【消息解析】使用body中的XML数据:', xmlData.substring(0, 100));
-      } else if (typeof req.body === 'object' && req.body.xml) {
-        // 如果已经被解析为对象
-        xmlData = JSON.stringify(req.body);
-        console.log('【消息解析】使用解析后的XML对象');
-      }
-    }
-
-    // 如果无法获取XML数据，返回成功响应
-    if (!xmlData) {
-      console.warn('【消息解析】无法获取XML数据，请求细节:', {
-        bodyPreview: req.body ? (typeof req.body === 'string' ? req.body.substring(0, 200) : JSON.stringify(req.body).substring(0, 200)) : 'null',
-        rawBodyPreview: req.rawBody ? req.rawBody.substring(0, 200) : 'null',
-        headers: req.headers
-      });
-      return res.send('success'); // 返回成功以避免企业微信重试
-    }
-
-    // 3. 调用wechat模块处理消息
-    try {
-      // 将XML和URL查询参数传递给消息处理函数
-      const result = await wechat.parseAndHandleMessage(xmlData, req.query, handleCommand);
-      console.log('【消息处理】处理结果:', result);
-      
-      // 如果处理失败但有特定原因，记录日志
-      if (!result.success) {
-        console.warn('【消息处理】处理失败原因:', result.reason);
-      }
-    } catch (parseError) {
-      console.error('【消息处理】处理XML消息时出错:', parseError);
-    }
-    
-    // 3. 返回成功响应给企业微信
-    // 企业微信要求返回"success"来确认接收成功
-    res.send('success');
-  } catch (error) {
-    console.error('处理企业微信消息出错:', error);
-    // 即使处理失败，也返回成功来避免企业微信重发
-    res.send('success');
-  }
-});
-
-// 添加代理转发路由
-app.post('/proxy', async (req, res) => {
-  try {
-    console.log('收到代理消息:', req.body);
-    const { message } = req.body;
-    
-    // 增加更详细的日志输出
-    console.log('【代理消息】完整请求数据:', JSON.stringify(req.body, null, 2));
-    
-    if (message) {
-      console.log('【代理消息】解析后的消息数据:', JSON.stringify(message, null, 2));
-      
-      // 检查必要字段
-      let content = null;
-      let fromUser = null;
-      
-      // 尝试不同字段名称
-      if (message.Content) {
-        content = message.Content;
-      } else if (message.content) {
-        content = message.content;
-      } else if (message.text) {
-        content = message.text;
-      }
-      
-      if (message.FromUserName) {
-        fromUser = message.FromUserName;
-      } else if (message.fromUserName) {
-        fromUser = message.fromUserName;
-      } else if (message.fromuser) {
-        fromUser = message.fromuser;
-      } else if (message.from) {
-        fromUser = message.from;
-      }
-      
-      // 设置默认值
-      fromUser = fromUser || '@proxy';
-      
-      if (content) {
-        // 处理代理转发的消息
-        console.log(`【代理消息】准备处理指令, 内容: ${content}, 发送者: ${fromUser}`);
-        const responseMsg = await handleCommand(content, fromUser);
-        console.log(`【代理消息】处理了来自 ${fromUser} 的指令: ${content}, 响应: ${responseMsg}`);
-        res.json({ success: true, message: '处理成功', response: responseMsg });
-      } else {
-        console.error('【代理消息】缺少内容字段:', req.body);
-        res.status(400).json({ success: false, message: '缺少消息内容' });
-      }
-    } else {
-      console.error('【代理消息】消息格式不正确:', req.body);
-      res.status(400).json({ success: false, message: '消息格式不正确' });
-    }
-  } catch (error) {
-    console.error('处理代理消息出错:', error);
-    res.status(500).json({ success: false, message: '处理消息出错', error: error.message });
-  }
-});
-
-// 添加测试消息发送API端点
-app.get('/api/test/message', async (req, res) => {
-  try {
-    console.log('收到测试消息请求:', req.query);
-    
-    // 从查询参数中获取自定义内容和接收者
-    const { content: customContent, toUser } = req.query;
-    const recipient = toUser || '@all';
-    
-    // 记录发送前的时间
-    const startTime = Date.now();
-    
-    // 创建测试消息
-    const message = wechat.generateTestMessage(customContent);
-    
-    // 发送测试消息
-    console.log(`准备发送测试消息给 ${recipient}`);
-    const result = await wechat.sendMessage(message, recipient, '测试API');
-    
-    // 计算发送耗时
-    const endTime = Date.now();
-    const duration = ((endTime - startTime) / 1000).toFixed(2);
-    
-    if (result) {
-      console.log(`测试消息发送成功，耗时: ${duration}秒`);
-      res.status(200).json({
-        success: true,
-        message: '测试消息发送成功',
-        data: {
-          duration: `${duration}秒`,
-          sendTime: new Date().toISOString(),
-          messageLength: message.length,
-          recipient
-        }
-      });
-    } else {
-      console.error(`测试消息发送失败，耗时: ${duration}秒`);
-      res.status(500).json({
-        success: false,
-        message: '测试消息发送失败',
-        error: 'Failed to send message'
-      });
-    }
-  } catch (error) {
-    console.error('发送测试消息出错:', error);
-    res.status(500).json({
-      success: false,
-      message: '发送测试消息出错',
-      error: error.message
-    });
-  }
-});
-
-// 添加简单的健康检查端点
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+// 微信消息处理路由 - 处理根路径和其他路径
+app.post(['/', '/wechat', '/wechat/callback'], wechatController.handleMessage);
 
 // 菜单管理相关路由
-// 创建Emby菜单
-app.get('/api/menu/create', async (req, res) => {
-  try {
-    console.log('收到创建菜单请求');
-    const result = await menuManager.createEmbyMenu();
-    res.json(result);
-  } catch (error) {
-    console.error('创建菜单失败:', error);
-    res.status(500).json({ success: false, message: `创建菜单失败: ${error.message}` });
-  }
-});
+app.get('/api/menu/create', menuController.createMenu.bind(menuController));
+app.get('/api/menu/get', menuController.getMenu.bind(menuController));
+app.get('/api/menu/delete', menuController.deleteMenu.bind(menuController));
 
-// 查询当前菜单
-app.get('/api/menu/get', async (req, res) => {
-  try {
-    console.log('收到查询菜单请求');
-    const result = await menuManager.getMenu();
-    res.json(result);
-  } catch (error) {
-    console.error('查询菜单失败:', error);
-    res.status(500).json({ success: false, message: `查询菜单失败: ${error.message}` });
-  }
-});
+// 测试消息发送路由
+app.get('/api/test/message', wechatController.sendTestMessage);
 
-// 删除当前菜单
-app.get('/api/menu/delete', async (req, res) => {
-  try {
-    console.log('收到删除菜单请求');
-    const result = await menuManager.deleteMenu();
-    res.json(result);
-  } catch (error) {
-    console.error('删除菜单失败:', error);
-    res.status(500).json({ success: false, message: `删除菜单失败: ${error.message}` });
-  }
-});
-
-// 手动测试菜单点击事件
-app.get('/api/test/menu', async (req, res) => {
-  const eventKey = req.query.key || 'UpdateEmbyAll';
-  const fromUser = req.query.user || 'TestUser';
-  
-  console.log(`【测试】模拟菜单点击事件: ${eventKey}, 来自用户: ${fromUser}`);
-  
-  try {
-    // 手动调用命令处理函数
-    const result = await handleCommand(eventKey, fromUser);
-    console.log('【测试】命令处理结果:', result);
-    
-    // 返回测试结果
-    res.status(200).json({
-      status: 'success',
-      message: '菜单点击测试成功',
-      eventKey,
-      fromUser,
-      result
-    });
-  } catch (error) {
-    console.error('【测试】测试菜单点击处理失败:', error);
-    res.status(500).json({
-      status: 'error',
-      message: '测试失败',
-      error: error.message
-    });
-  }
-});
-
-// 模拟企业微信XML消息处理
-app.get('/api/test/xml', async (req, res) => {
-  const eventKey = req.query.key || 'UpdateEmbyAll';
-  const fromUser = req.query.user || 'TestUser';
-  
-  // 创建XML模拟菜单点击事件
-  const xml = `<xml>
-    <ToUserName><![CDATA[${config.wechat.corpId}]]></ToUserName>
-    <FromUserName><![CDATA[${fromUser}]]></FromUserName>
-    <CreateTime>${Math.floor(Date.now() / 1000)}</CreateTime>
-    <MsgType><![CDATA[event]]></MsgType>
-    <Event><![CDATA[click]]></Event>
-    <EventKey><![CDATA[${eventKey}]]></EventKey>
-    <AgentID><![CDATA[${config.wechat.agentId}]]></AgentID>
-  </xml>`;
-  
-  console.log('【测试】将处理模拟的XML消息:', xml);
-  
-  try {
-    // 直接将XML传递给处理函数
-    const result = await wechat.parseAndHandleMessage(xml, {}, handleCommand);
-    console.log('【测试】XML消息处理结果:', result);
-    
-    res.status(200).json({
-      status: 'success',
-      message: 'XML消息处理成功',
-      result
-    });
-  } catch (error) {
-    console.error('【测试】处理XML消息失败:', error);
-    res.status(500).json({
-      status: 'error',
-      message: '处理失败',
-      error: error.message
-    });
-  }
-});
+// 代理转发路由
+app.post('/proxy', proxyController.handleProxyMessage);
 
 // 启动服务器
-app.listen(port, '0.0.0.0', () => {  // 再次改回0.0.0.0以确保局域网访问
+app.listen(port, '0.0.0.0', () => {  // 监听所有网络接口以确保局域网访问
   console.log(`企业微信通知服务启动成功，监听所有网络接口，端口: ${port}`);
   console.log(`可以通过局域网IP访问: http://0.0.0.0:${port}`);
   
-  // 如果启用了代理，则显示代理信息
+  // 如果启用了代理，显示代理地址
   if (config.proxy && config.proxy.enabled) {
     console.log(`已启用代理，代理地址: ${config.proxy.url}`);
   }
