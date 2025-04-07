@@ -5,6 +5,9 @@
 const logger = require('../utils/logger');
 const wechatService = require('./wechatService');
 
+// 导入专门的服务模块
+const embyService = require('./emby/embyService');
+
 /**
  * 命令处理服务
  */
@@ -39,22 +42,30 @@ const commandService = {
     switch (trimmedCommand) {
       case 'UpdateEmbyAll':
         logger.info('处理 UpdateEmbyAll 指令');
-        responseMsg = `已接收到 ${trimmedCommand} 指令`;
+        // 调用embyService更新所有媒体库
+        const allResult = await embyService.updateAllLibraries();
+        responseMsg = `Emby全部更新指令执行结果: ${allResult.message}`;
         break;
         
       case 'UpdateEmbyMov':
         logger.info('处理 UpdateEmbyMov 指令');
-        responseMsg = `已接收到 ${trimmedCommand} 指令`;
+        // 调用embyService更新电影媒体库
+        const movResult = await embyService.updateMovieLibraries();
+        responseMsg = `Emby电影更新指令执行结果: ${movResult.message}`;
         break;
         
       case 'UpdateEmbyTv':
         logger.info('处理 UpdateEmbyTv 指令');
-        responseMsg = `已接收到 ${trimmedCommand} 指令`;
+        // 调用embyService更新电视剧媒体库
+        const tvResult = await embyService.updateTvLibraries();
+        responseMsg = `Emby电视剧更新指令执行结果: ${tvResult.message}`;
         break;
         
       case 'UpdateEmbyAmi':
         logger.info('处理 UpdateEmbyAmi 指令');
-        responseMsg = `已接收到 ${trimmedCommand} 指令`;
+        // 调用embyService更新动漫媒体库
+        const animeResult = await embyService.updateAnimeLibraries();
+        responseMsg = `Emby动漫更新指令执行结果: ${animeResult.message}`;
         break;
         
       case 'ServiceStatus':

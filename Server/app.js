@@ -1,9 +1,3 @@
-/**
- * 企业微信通知接收服务
- * 接收四个指令：UpdateEmbyAll，UpdateEmbyMov，UpdateEmbyTv，UpdateEmbyAmi
- * 收到指令后会给用户回复接收到相应指令的消息
- */
-
 // 导入依赖
 const express = require('express');
 const cors = require('cors');
@@ -75,7 +69,7 @@ app.post('/proxy', proxyController.handleProxyMessage);
 // 启动服务器
 app.listen(port, '0.0.0.0', () => {  // 监听所有网络接口以确保局域网访问
   console.log(`企业微信通知服务启动成功，监听所有网络接口，端口: ${port}`);
-  console.log(`可以通过局域网IP访问: http://0.0.0.0:${port}`);
+  console.log(`可以通过局域网IP访问: http://127.0.0.1:${port}`);
   
   // 如果启用了代理，显示代理地址
   if (config.proxy && config.proxy.enabled) {
