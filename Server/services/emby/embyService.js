@@ -40,7 +40,7 @@ class EmbyService {
         
         response = await axios.post(url, undefined, headers);
         
-        logger.info(`刷新指定项目响应:`, response);
+        // logger.info(`刷新指定项目响应:`, response);
       } else {
         // 如果没有指定ID，尝试刷新所有媒体库
         logger.warn('未指定项目ID，执行全库刷新');
@@ -52,7 +52,7 @@ class EmbyService {
         
         response = await axios.post(url, undefined, headers);
         
-        logger.info(`刷新所有媒体库响应:`, response);
+        // logger.info(`刷新所有媒体库响应:`, response);
       }
       
       // 判断最终响应是否成功

@@ -40,7 +40,7 @@ const httpClient = {
   async post(url, data = {}, options = {}) {
     try {
       const response = await axios.post(url, data, options);
-      logger.info(`POST请求成功: ${url}, 响应数据: ${JSON.stringify(response.data)}`);
+      // logger.info(`POST请求成功: ${url}, 响应数据: ${JSON.stringify(response.data)}`);
       return response.data;
     } catch (error) {
       logger.error(`POST请求失败: ${url}`, error);
@@ -75,7 +75,7 @@ const httpClient = {
         data: response.data
       };
     } catch (error) {
-      logger.error('转发到代理服务器失败', error);
+      // logger.error('转发到代理服务器失败', error);
       return {
         success: false,
         error: error.message
