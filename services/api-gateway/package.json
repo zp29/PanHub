@@ -1,0 +1,16 @@
+{
+  "name": "panhub-api-gateway",
+  "version": "1.0.0",
+  "description": "PanHub API Gateway Service",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
+  },
+  "dependencies": {
+    "express": "^4.17.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.15"
+  }
+} 

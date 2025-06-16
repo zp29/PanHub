@@ -14,7 +14,7 @@
     "url": "http://1.95.213.118:3003"
   },
   "emby": {
-    "baseUrl": "https://emby.zp29.xyz:8096",
+    "baseUrl": "http://1.95.213.118:9096",
     "apiKey": "6dbc93c10273476fafe2dd92ca7f678c",
     "libraryIds": {
       "movie": "3",

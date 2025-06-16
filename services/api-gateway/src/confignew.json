@@ -1,0 +1,102 @@
+{
+  "global": {
+    "enterprise_wechat": {
+      "corp_id": "ww875b9d059d13e922",
+      "calaback_port": 4001
+    },
+    "proxy": {
+      "enabled": true,
+      "url": "http://1.95.213.118:3003"
+    }
+  },
+  
+  "applications": {
+    "emby": {
+      "service": {
+        "type": "media_server",
+        "backend_port": 8096,
+        "websocket_support": true,
+        "baseUrl": "https://emby.zp29.xyz:8096",
+        "apiKey": "6dbc93c10273476fafe2dd92ca7f678c",
+        "libraryIds": {
+          "movie": "3",
+          "tv": "557",
+          "anime": "60652"
+        }
+      },
+      "wechat_config": {
+        "agent_id": "1000005",
+        "secret": "J4_DkaYhbgvBkyN6BYwcdXqzgoErHS6C9OgOoA0Gqoc",
+        "token": "zXmBUdnC3bzayI",
+        "aes_key": "z9jLDm8uo53rfruUIj0xZo5bhQJzGi1SnbjUHBFUG9x",
+        "callback_path": "/wxcom/emby",
+        "menu": {
+          "button": [
+            {
+              "name": "Emby更新",
+              "sub_button": [
+                {
+                  "type": "click",
+                  "name": "全部更新",
+                  "key": "UpdateEmbyAll"
+                },
+                {
+                  "type": "click",
+                  "name": "电影更新",
+                  "key": "UpdateEmbyMov"
+                },
+                {
+                  "type": "click",
+                  "name": "电视剧更新",
+                  "key": "UpdateEmbyTv"
+                },
+                {
+                  "type": "click",
+                  "name": "动漫更新",
+                  "key": "UpdateEmbyAmi"
+                }
+              ]
+            },
+            {
+              "type": "click",
+              "name": "服务状态",
+              "key": "ServiceStatus"
+            }
+          ]
+        }
+      }
+    },
+    
+    "alist": {
+      "service": {
+        "type": "cloud_storage",
+        "backend_port": 5244,
+        "upload_optimization": true 
+      },
+      "wechat_config": {
+        "agent_id": 100002,
+        "secret": "alist_wecom_secret",
+        "token": "ALISTTOKEN9988",
+        "aes_key": "alistaeskey0987654321alistaeskey0987",
+        "callback_path": "/wxcom/alist",
+        "oauth_scopes": ["snsapi_privateinfo"] 
+      }
+    },
+    
+    "music": {
+      "service": {
+        "type": "audio_streaming",
+        "backend_port": 3000,
+        "range_support": true 
+      },
+      "wechat_config": {
+        "agent_id": 100003,
+        "secret": "music_wecom_secret",
+        "token": "MUSICTOKEN2025",
+        "aes_key": "musicaeskey54321musicaeskey54321",
+        "callback_path": "/wxcom/music",
+        "trusted_ips": ["203.0.113.25"] 
+      }
+    }
+  }
+}
