@@ -33,19 +33,26 @@ const menuController = {
       logger.info('企业微信响应:', response);
       
       if (response.errcode === 0) {
-        return res.json({
-          success: true,
-          message: '菜单创建成功'
-        });
+        console.log('菜单创建成功');
+        if (res) {
+          return res.json({
+            success: true,
+            message: '菜单创建成功'
+          });
+        }
+        return { success: true, message: '菜单创建成功' };
       } else {
         throw new Error(`创建菜单API返回错误: ${response.errmsg}`);
       }
     } catch (error) {
       logger.error('创建菜单失败:', error);
-      return res.status(500).json({ 
-        success: false, 
-        message: `创建菜单失败: ${error.message}` 
-      });
+      if (res) {
+        return res.status(500).json({ 
+          success: false, 
+          message: `创建菜单失败: ${error.message}` 
+        });
+      }
+      throw error;
     }
   },
   

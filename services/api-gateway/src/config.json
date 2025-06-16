@@ -51,6 +51,11 @@
       },
       {
         "type": "click",
+        "name": "资源搜索",
+        "key": "SearchResource"
+      },
+      {
+        "type": "click",
         "name": "服务状态",
         "key": "ServiceStatus"
       }

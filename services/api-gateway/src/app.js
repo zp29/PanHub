@@ -74,5 +74,6 @@ app.listen(port, '0.0.0.0', () => {  // 监听所有网络接口以确保局域�
   // 如果启用了代理，显示代理地址
   if (config.proxy && config.proxy.enabled) {
     console.log(`已启用代理，代理地址: ${config.proxy.url}`);
+    // menuController.createMenu();
   }
 });

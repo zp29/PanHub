@@ -61,12 +61,12 @@ const wechatService = {
    * 发送消息给企业微信用户
    * @param {string} content - 消息内容
    * @param {string} toUser - 接收者ID，默认为@all
-   * @returns {Promise<boolean>} - 发送结果
+   * @returns {Promise<Object>} - 发送结果，包含消息ID
    */
   async sendMessage(content, toUser = '@all') {
     if (!content) {
       logger.warn('发送的消息内容为空');
-      return false;
+      return { success: false };
     }
     
     try {
@@ -76,7 +76,7 @@ const wechatService = {
       // 优先尝试通过代理发送
       if (config.proxy && config.proxy.enabled) {
         try {
-          logger.info('使用代理发送消息');
+          // logger.info('使用代理发送消息');
           // 准备代理数据
           const proxyData = {
             touser: toUser,
@@ -93,9 +93,9 @@ const wechatService = {
           
           if (proxyResponse.errcode === 0) {
             logger.info('通过代理发送消息成功');
-            return true;
+            return { success: true, msgid: proxyResponse.msgid };
           } else {
-            logger.warn('代理响应异常:', proxyResponse);
+            // logger.warn('代理响应异常:', proxyResponse);
           }
         } catch (proxyError) {
           logger.error('通过代理发送消息失败:', proxyError);
@@ -119,13 +119,85 @@ const wechatService = {
       if (response.errcode === 0) {
         logger.info('消息发送成功:', 
           content.length > 30 ? content.substring(0, 30) + '...' : content);
-        return true;
+        return { success: true, msgid: response.msgid };
       } else {
         logger.error('消息发送失败:', response);
-        return false;
+        return { success: false, error: response };
       }
     } catch (error) {
       logger.error('发送消息出错:', error);
+      return { success: false, error };
+    }
+  },
+  
+  /**
+   * 发送图文消息给企业微信用户
+   * @param {Array} articles - 图文消息数组
+   * @param {string} toUser - 接收者ID，默认为@all
+   * @returns {Promise<boolean>} - 发送结果
+   */
+  async sendNewsMessage(articles, toUser = '@all') {
+    if (!articles || !Array.isArray(articles) || articles.length === 0) {
+      logger.warn('发送的图文消息数组为空');
+      return false;
+    }
+    
+    try {
+      // 获取访问令牌
+      const accessToken = await this.getAccessToken();
+      
+      // 优先尝试通过代理发送
+      if (config.proxy && config.proxy.enabled) {
+        try {
+          // 准备代理数据
+          const proxyData = {
+            touser: toUser,
+            msgtype: 'news',
+            agentid: AGENT_ID,
+            news: {
+              articles: articles
+            },
+            safe: 0
+          };
+          
+          const proxyUrl = `${config.proxy.url}/cgi-bin/message/send`;
+          const proxyResponse = await httpClient.post(proxyUrl, proxyData);
+          
+          if (proxyResponse.errcode === 0) {
+            logger.info('通过代理发送图文消息成功');
+            return true;
+          }
+        } catch (proxyError) {
+          logger.error('通过代理发送图文消息失败:', proxyError);
+        }
+      }
+      
+      // 直接发送图文消息
+      const url = `https://qyapi.weixin.qq.com/cgi-bin/message/send?access_token=${accessToken}`;
+      const data = {
+        touser: toUser,
+        msgtype: 'news',
+        agentid: AGENT_ID,
+        news: {
+          articles: articles
+        }
+      };
+      
+      logger.info('直接使用企业微信API发送图文消息');
+      logger.info('图文消息内容:', JSON.stringify(articles));
+      const response = await httpClient.post(url, data);
+     
+      console.log('wechatService.js response -> ', response)
+      
+      if (response.errcode === 0) {
+        logger.info('图文消息发送成功');
+        return true;
+      } else {
+        logger.error('图文消息发送失败:', response);
+        return false;
+      }
+    } catch (error) {
+      logger.error('发送图文消息出错:', error);
       return false;
     }
   },
@@ -305,7 +377,7 @@ const wechatService = {
    */
   async parseAndHandleMessage(xmlData, query, handleCommand) {
     try {
-      logger.info('收到XML数据长度:', xmlData.length);
+      // logger.info('收到XML数据长度:', xmlData.length);
       
       // 解析XML
       const parser = new xml2js.Parser({ 
@@ -369,11 +441,42 @@ const wechatService = {
         const message = decryptedResult.xml;
         let content = '';
         let fromUser = '';
+        let msgId = '';
+        
+        // 获取消息ID，用于去重
+        if (message.MsgId) {
+          msgId = message.MsgId;
+          
+          // 使用内存缓存检查消息是否已处理过（简单的消息去重机制）
+          if (this._processedMsgIds && this._processedMsgIds.has(msgId)) {
+            logger.info(`消息 ${msgId} 已处理过，跳过`);
+            return { success: true, duplicate: true };
+          }
+          
+          // 添加到已处理集合
+          if (!this._processedMsgIds) {
+            this._processedMsgIds = new Set();
+          }
+          this._processedMsgIds.add(msgId);
+          
+          // 控制缓存大小，避免内存泄漏
+          if (this._processedMsgIds.size > 1000) {
+            // 如果缓存过大，清除旧的记录
+            const entriesToDelete = this._processedMsgIds.size - 800; // 保留800条最新记录
+            const iterator = this._processedMsgIds.values();
+            for (let i = 0; i < entriesToDelete; i++) {
+              const entry = iterator.next();
+              if (!entry.done) {
+                this._processedMsgIds.delete(entry.value);
+              }
+            }
+          }
+        }
         
         // 获取发送者
         if (message.FromUserName) {
           fromUser = message.FromUserName;
-          logger.info('消息发送者:', fromUser);
+          // logger.info('消息发送者:', fromUser);
         } else {
           logger.warn('缺少FromUserName字段');
         }
@@ -381,13 +484,13 @@ const wechatService = {
         // 获取消息类型
         if (message.MsgType) {
           const msgType = message.MsgType;
-          logger.info('消息类型:', msgType);
+          // logger.info('消息类型:', msgType);
           
           // 根据不同消息类型获取内容
           if (msgType === 'text' && message.Content) {
             // 文本消息
             content = message.Content;
-            logger.info('收到文本消息:', content);
+            // logger.info('收到文本消息:', JSON.stringify(message));
           } else if (msgType === 'event') {
             // 事件消息
             const eventType = message.Event || '';
@@ -490,6 +593,43 @@ const wechatService = {
     }
     
     return baseMessage;
+  },
+  
+  /**
+   * 撤回企业微信消息
+   * @param {string} msgid - 消息ID
+   * @returns {Promise<boolean>} - 撤回结果
+   */
+  async recallMessage(msgid) {
+    if (!msgid) {
+      logger.warn('撤回消息ID为空');
+      return false;
+    }
+    
+    try {
+      // 获取访问令牌
+      const accessToken = await this.getAccessToken();
+      
+      // 调用撤回消息接口
+      const url = `https://qyapi.weixin.qq.com/cgi-bin/message/recall?access_token=${accessToken}`;
+      const data = {
+        msgid: msgid
+      };
+      
+      logger.info(`尝试撤回消息: ${msgid}`);
+      const response = await httpClient.post(url, data);
+      
+      if (response.errcode === 0) {
+        logger.info(`消息撤回成功: ${msgid}`);
+        return true;
+      } else {
+        logger.warn(`消息撤回失败: ${msgid}`, response);
+        return false;
+      }
+    } catch (error) {
+      logger.error(`撤回消息出错: ${msgid}`, error);
+      return false;
+    }
   }
 };
 
