@@ -14,7 +14,7 @@ services:
       # - pan115-service
       # - wechat-service
     volumes:
-      - ./services/api-gateway/src/logs:/app/src/logs
+      # - ./services/api-gateway/src/logs:/app/src/logs
     restart: always
       
   # pan115-service:
