@@ -6,7 +6,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const PORT = process.env.PORT || 8001;
+const PORT = process.env.PORT || 8003;
 
 // 企业微信消息接收
 app.post('/api/wechat/receive', (req, res) => {

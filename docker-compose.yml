@@ -8,36 +8,36 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - PAN115_SERVICE_URL=http://pan115-service:8000
-      - wechat_SERVICE_URL=http://wechat-service:8001
+      # - PAN115_SERVICE_URL=http://pan115-service:8000
+      # - wechat_SERVICE_URL=http://wechat-service:8001
     depends_on:
-      - pan115-service
-      - wechat-service
+      # - pan115-service
+      # - wechat-service
     volumes:
       - ./services/api-gateway/src/logs:/app/src/logs
     restart: always
       
-  pan115-service:
-    build: ./services/pan115-service
-    ports:
-      - "8000:8000"
-    environment:
-      - FLASK_ENV=production
-      - PORT=8000
-    volumes:
-      - ./services/pan115-service/app:/app/app
-    restart: always
+  # pan115-service:
+  #   build: ./services/pan115-service
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     - FLASK_ENV=production
+  #     - PORT=8000
+  #   volumes:
+  #     - ./services/pan115-service/app:/app/app
+  #   restart: always
       
-  wechat-service:
-    build: ./services/wechat-service
-    ports:
-      - "8001:8001"
-    environment:
-      - NODE_ENV=production
-      - PORT=8001
-    volumes:
-      - ./services/wechat-service/src:/app/src
-    restart: always
+  # wechat-service:
+  #   build: ./services/wechat-service
+  #   ports:
+  #     - "8001:8001"
+  #   environment:
+  #     - NODE_ENV=production
+  #     - PORT=8001
+  #   volumes:
+  #     - ./services/wechat-service/src:/app/src
+  #   restart: always
 
 # 其他服务可以在需要时添加
 # pan123-service:
