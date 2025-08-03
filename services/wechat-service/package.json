@@ -1,7 +1,7 @@
 {
-  "name": "panhub-wecom-service",
+  "name": "panhub-wechat-service",
   "version": "1.0.0",
-  "description": "PanHub WeCom Service",
+  "description": "PanHub wechat Service",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",

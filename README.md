@@ -8,7 +8,7 @@ PanHub是一个网盘服务项目，通过企业微信或后台管理系统找�
 PanHub/
 ├── services/                   # 所有微服务
 │   ├── api-gateway/            # Node.js API网关服务
-│   ├── wecom-service/          # 企业微信对接服务 (Node.js)
+│   ├── wechat-service/          # 企业微信对接服务 (Node.js)
 │   ├── pan115-service/         # 115网盘服务 (Python)
 │   ├── pan123-service/         # 123网盘服务 (Python)
 │   ├── transfer-service/       # 网盘转换服务 (Python)
@@ -45,7 +45,7 @@ cd services/api-gateway
 npm install
 
 # 企业微信服务
-cd services/wecom-service
+cd services/wechat-service
 npm install
 
 # 115网盘服务
@@ -61,7 +61,7 @@ cd services/api-gateway
 npm run dev
 
 # 企业微信服务
-cd services/wecom-service
+cd services/wechat-service
 npm run dev
 
 # 115网盘服务

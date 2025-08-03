@@ -75,7 +75,7 @@
       },
       "wechat_config": {
         "agent_id": 100002,
-        "secret": "alist_wecom_secret",
+        "secret": "alist_wechat_secret",
         "token": "ALISTTOKEN9988",
         "aes_key": "alistaeskey0987654321alistaeskey0987",
         "callback_path": "/wxcom/alist",
@@ -91,7 +91,7 @@
       },
       "wechat_config": {
         "agent_id": 100003,
-        "secret": "music_wecom_secret",
+        "secret": "music_wechat_secret",
         "token": "MUSICTOKEN2025",
         "aes_key": "musicaeskey54321musicaeskey54321",
         "callback_path": "/wxcom/music",

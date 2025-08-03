@@ -9,10 +9,10 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - PAN115_SERVICE_URL=http://pan115-service:8000
-      - WECOM_SERVICE_URL=http://wecom-service:8001
+      - wechat_SERVICE_URL=http://wechat-service:8001
     depends_on:
       - pan115-service
-      - wecom-service
+      - wechat-service
     volumes:
       - ./services/api-gateway/src/logs:/app/src/logs
     restart: always
@@ -28,15 +28,15 @@ services:
       - ./services/pan115-service/app:/app/app
     restart: always
       
-  wecom-service:
-    build: ./services/wecom-service
+  wechat-service:
+    build: ./services/wechat-service
     ports:
       - "8001:8001"
     environment:
       - NODE_ENV=production
       - PORT=8001
     volumes:
-      - ./services/wecom-service/src:/app/src
+      - ./services/wechat-service/src:/app/src
     restart: always
 
 # 其他服务可以在需要时添加
